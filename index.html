@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jita Market Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0c0f; --bg2:#0f1216; --bg3:#141820; --panel:#161b24;
+  --border:#1e2530; --border2:#2a3444;
+  --accent:#00c8ff; --accent2:#0088bb;
+  --gold:#f0a500; --gold2:#c47e00;
+  --green:#00e676; --green2:#00a152;
+  --red:#ff5252; --amber:#ffab40;
+  --text:#c8d4e0; --text2:#7a90a8; --text3:#3d5068;
+  --mono:'Share Tech Mono',monospace;
+  --cond:'Barlow Condensed',sans-serif;
+  --body:'Barlow',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);pointer-events:none;z-index:9999;}
+.shell{max-width:1280px;margin:0 auto;padding:24px 20px 60px;}
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.logo{display:flex;align-items:center;gap:14px;}
+.logo-icon{width:36px;height:36px;border:1.5px solid var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--accent);}
+.logo-text h1{font-family:var(--cond);font-size:26px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;}
+.logo-text p{font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:1px;margin-top:2px;}
+.hdr-right{text-align:right;font-family:var(--mono);font-size:10px;color:var(--text3);line-height:2;}
+.hdr-right span{color:var(--accent);}
+.refresh-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border2);background:transparent;font-family:var(--mono);font-size:10px;color:var(--text2);cursor:pointer;letter-spacing:1px;transition:all 0.15s;margin-top:4px;}
+.refresh-btn:hover{border-color:var(--accent2);color:var(--accent);}
+.refresh-btn.spinning .spin{animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{display:inline-block;}
+#state-loading,#state-error{padding:60px 20px;text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:1px;}
+#state-loading{color:var(--text3);}
+#state-error{color:var(--red);}
+.pulse{animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.3;}50%{opacity:1;}}
+.tier-nav{display:flex;gap:2px;margin-bottom:20px;}
+.tbtn{flex:1;padding:10px 8px;background:var(--bg3);border:1px solid var(--border);font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);cursor:pointer;transition:all 0.15s;text-align:center;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);}
+.tbtn:hover{background:var(--bg2);color:var(--text);border-color:var(--border2);}
+.tbtn.aw{background:rgba(240,165,0,0.08);border-color:var(--gold2);color:var(--gold);}
+.tbtn.am{background:rgba(0,200,255,0.06);border-color:var(--accent2);color:var(--accent);}
+.tbtn.av{background:rgba(0,230,118,0.06);border-color:var(--green2);color:var(--green);}
+.tdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+.wd{background:var(--gold);box-shadow:0 0 6px var(--gold);}
+.md{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.vd{background:var(--green);box-shadow:0 0 6px var(--green);}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
+.mc{background:var(--panel);border:1px solid var(--border);padding:10px 14px;}
+.mc-l{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.mc-v{font-family:var(--cond);font-size:22px;font-weight:600;color:#fff;}
+.mc-v.gold{color:var(--gold);} .mc-v.acc{color:var(--accent);} .mc-v.grn{color:var(--green);}
+.sort-bar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap;}
+.sl{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1px;margin-right:4px;}
+.sbtn{padding:4px 10px;background:transparent;border:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text2);cursor:pointer;letter-spacing:0.5px;transition:all 0.12s;}
+.sbtn:hover{border-color:var(--border2);color:var(--text);}
+.sbtn.on{border-color:var(--accent2);color:var(--accent);background:rgba(0,200,255,0.05);}
+.tier-desc{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:14px;letter-spacing:0.5px;padding:8px 12px;border-left:2px solid var(--border2);}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead tr{border-bottom:2px solid var(--border2);}
+th{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:8px 10px;text-align:right;white-space:nowrap;cursor:pointer;user-select:none;transition:color 0.12s;}
+th:first-child{text-align:left;}
+th:hover{color:var(--text);}
+th.on{color:var(--accent);}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:hover{background:rgba(0,200,255,0.03);}
+tbody tr.top{background:rgba(240,165,0,0.03);}
+tbody tr.top:hover{background:rgba(240,165,0,0.06);}
+td{padding:9px 10px;text-align:right;white-space:nowrap;}
+td:first-child{text-align:left;}
+.iname{font-size:13px;font-weight:500;color:#dde8f0;max-width:240px;overflow:hidden;text-overflow:ellipsis;display:block;}
+.badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:0.5px;padding:2px 6px;border-radius:2px;vertical-align:middle;}
+.bg{background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.25);}
+.ba{background:rgba(255,171,64,0.12);color:var(--amber);border:1px solid rgba(255,171,64,0.25);}
+.bb{background:rgba(0,200,255,0.10);color:var(--accent);border:1px solid rgba(0,200,255,0.2);}
+.br{background:rgba(255,82,82,0.10);color:var(--red);border:1px solid rgba(255,82,82,0.2);}
+.dim{color:var(--text3);}
+.rb{width:40px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:5px;}
+.rb-fill{height:100%;border-radius:2px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+#tbody tr{animation:fadeUp 0.16s ease both;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="hdr">
+    <div class="logo">
+      <div class="logo-icon">◈</div>
+      <div class="logo-text">
+        <h1>Jita Market Scanner</h1>
+        <p>REGION: THE FORGE &nbsp;|&nbsp; STATION: JITA IV-4 &nbsp;|&nbsp; HIGHSEC SPREAD ANALYSIS</p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      FETCHED <span id="ts">—</span><br>
+      ROWS SCANNED <span id="scanned">—</span><br>
+      <button class="refresh-btn" onclick="load()"><span class="spin">↻</span>&nbsp;REFRESH</button>
+    </div>
+  </header>
+
+  <div id="state-loading"><span class="pulse">CONNECTING TO MARKET DATABASE...</span></div>
+  <div id="state-error" style="display:none"></div>
+
+  <div id="main" style="display:none">
+    <div class="tier-nav">
+      <button class="tbtn aw" id="btn-whale" onclick="setTier('whale')"><span class="tdot wd"></span>Whale &lt;50/day</button>
+      <button class="tbtn"    id="btn-mid"   onclick="setTier('mid')">  <span class="tdot md"></span>Mid 50–500/day</button>
+      <button class="tbtn"    id="btn-vol"   onclick="setTier('vol')">  <span class="tdot vd"></span>Volume 500+/day</button>
+    </div>
+    <div class="metrics" id="metrics"></div>
+    <div class="tier-desc" id="tier-desc"></div>
+    <div class="sort-bar">
+      <span class="sl">SORT:</span>
+      <button class="sbtn on" data-k="daily_isk" onclick="setSort('daily_isk',this)">Daily ISK</button>
+      <button class="sbtn"    data-k="spread"    onclick="setSort('spread',this)">Spread/unit</button>
+      <button class="sbtn"    data-k="sell"       onclick="setSort('sell',this)">Sell price</button>
+      <button class="sbtn"    data-k="margin"     onclick="setSort('margin',this)">Margin %</button>
+      <button class="sbtn"    data-k="capturable" onclick="setSort('capturable',this)">Cap. vol</button>
+      <button class="sbtn"    data-k="remaining"  onclick="setSort('remaining',this)">Remaining</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead id="thead">
+          <tr>
+            <th style="text-align:left">Item</th>
+            <th>Sell price</th>
+            <th>Buy price</th>
+            <th>Spread / unit</th>
+            <th>Margin</th>
+            <th>Cap. vol/day</th>
+            <th>Sold today</th>
+            <th>Remaining</th>
+            <th class="on">Daily ISK ▼</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+<script>
+// ── SET YOUR EC2 PUBLIC IP OR DOMAIN HERE ─────────────────────────────────
+const API = "http://3.21.53.19:8000/deals";
+// e.g.  "http://3.21.53.19:8000/deals"
+// With nginx+SSL: "https://market.yourdomain.com/deals"
+
+let DATA    = {};
+let curTier = "whale";
+let sortKey = "daily_isk";
+let sortDir = -1;
+
+const DESCS = {
+  whale: "Whale tier — buy 1–20 units, big ISK per flip. All rolling averages. Remaining = roll avg minus today's confirmed sales (snapshot-dependent).",
+  mid:   "Mid tier — 50–500 capturable/day. Reliable daily ISK with manageable capital and repeatable volume.",
+  vol:   "Volume tier — 500+ capturable/day. Lower ISK per unit but high throughput. Best for automated order cycling."
+};
+
+const TIER_ACCENT = {whale:"gold", mid:"accent", vol:"green"};
+
+function fmt(n) {
+  if (n == null) return "—";
+  if (n >= 1e9)  return (n/1e9).toFixed(2)+"B";
+  if (n >= 1e6)  return (n/1e6).toFixed(2)+"M";
+  if (n >= 1e3)  return (n/1e3).toFixed(0)+"k";
+  return Math.round(n).toLocaleString();
+}
+
+function mBadge(m) {
+  const c = m >= 30 ? "bg" : m >= 15 ? "ba" : "bb";
+  return `<span class="badge ${c}">${m.toFixed(1)}%</span>`;
+}
+
+function remBar(rem, cap) {
+  if (!cap) return '<span class="dim">—</span>';
+  const pct = Math.min(1, rem / cap);
+  const col  = pct > 0.7 ? "var(--green)" : pct > 0.3 ? "var(--amber)" : "var(--red)";
+  const bc   = pct > 0.7 ? "bg" : pct > 0.3 ? "ba" : "br";
+  return `<span class="rb"><span class="rb-fill" style="width:${(pct*100).toFixed(0)}%;background:${col}"></span></span>`
+       + `<span class="badge ${bc}">${Math.round(rem).toLocaleString()}</span>`;
+}
+
+function render() {
+  const items = [...(DATA[curTier] || [])].sort((a, b) => {
+    const av = a[sortKey] ?? 0, bv = b[sortKey] ?? 0;
+    return typeof av === "string" ? sortDir * av.localeCompare(bv) : sortDir * (av - bv);
+  });
+
+  const totalISK = items.reduce((s, r) => s + r.daily_isk, 0);
+  const avgSprd  = items.length ? items.reduce((s,r) => s+r.spread, 0)/items.length : 0;
+  const ac       = TIER_ACCENT[curTier];
+
+  document.getElementById("metrics").innerHTML = `
+    <div class="mc"><div class="mc-l">items in tier</div><div class="mc-v">${items.length}</div></div>
+    <div class="mc"><div class="mc-l">total daily ISK</div><div class="mc-v ${ac}">${totalISK.toFixed(0)}M+</div></div>
+    <div class="mc"><div class="mc-l">top item</div><div class="mc-v acc">${(items[0]?.daily_isk??0).toFixed(0)}M</div></div>
+    <div class="mc"><div class="mc-l">avg spread/unit</div><div class="mc-v">${fmt(avgSprd)}</div></div>
+    <div class="mc"><div class="mc-l">last fetch</div><div class="mc-v" style="font-size:13px;color:var(--text2)">${document.getElementById("ts").textContent}</div></div>
+  `;
+  document.getElementById("tier-desc").textContent = DESCS[curTier];
+
+  document.getElementById("tbody").innerHTML = items.map((r, i) => `
+    <tr class="${i < 3 ? "top" : ""}">
+      <td><span class="iname">${i < 3 ? "★ " : ""}${r.name}</span></td>
+      <td>${fmt(r.sell)}</td>
+      <td>${fmt(r.buy)}</td>
+      <td>${fmt(r.spread)}</td>
+      <td>${mBadge(r.margin)}</td>
+      <td>${Math.round(r.capturable).toLocaleString()}</td>
+      <td>${r.sold_today > 0 ? Math.round(r.sold_today).toLocaleString() : '<span class="dim">—</span>'}</td>
+      <td>${remBar(r.remaining, r.capturable)}</td>
+      <td><strong style="color:var(--${ac})">${r.daily_isk.toFixed(1)}M</strong></td>
+    </tr>
+  `).join("");
+}
+
+function setTier(t) {
+  curTier = t;
+  const map = {whale:"aw", mid:"am", vol:"av"};
+  document.querySelectorAll(".tbtn").forEach(b => b.className = "tbtn");
+  document.getElementById("btn-"+t).classList.add(map[t]);
+  sortKey = "daily_isk"; sortDir = -1;
+  document.querySelectorAll(".sbtn").forEach(b => b.classList.remove("on"));
+  document.querySelector('[data-k="daily_isk"]').classList.add("on");
+  render();
+}
+
+function setSort(k, btn) {
+  sortKey === k ? sortDir *= -1 : (sortKey = k, sortDir = k === "name" ? 1 : -1);
+  document.querySelectorAll(".sbtn").forEach(b => b.classList.remove("on"));
+  if (btn) btn.classList.add("on");
+  render();
+}
+
+async function load() {
+  const btn = document.querySelector(".refresh-btn");
+  btn.classList.add("spinning");
+  document.getElementById("state-error").style.display = "none";
+  try {
+    const res  = await fetch(API);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    DATA = json.tiers;
+    document.getElementById("ts").textContent      = new Date().toISOString().replace("T"," ").slice(0,19) + " UTC";
+    document.getElementById("scanned").textContent = (json.meta?.rows_scanned ?? "?").toLocaleString();
+    document.getElementById("state-loading").style.display = "none";
+    document.getElementById("main").style.display          = "block";
+    setTier("whale");
+  } catch(e) {
+    document.getElementById("state-loading").style.display = "none";
+    document.getElementById("state-error").style.display   = "block";
+    document.getElementById("state-error").innerHTML =
+      `<div>⚠ MARKET DATA UNAVAILABLE</div>
+       <div style="margin-top:8px;color:var(--text3);font-size:11px">${e.message}</div>
+       <div style="margin-top:16px"><button class="refresh-btn" onclick="load()"><span class="spin">↻</span> RETRY</button></div>`;
+  } finally {
+    btn.classList.remove("spinning");
+  }
+}
+
+load();
+</script>
+</body>
+</html>
