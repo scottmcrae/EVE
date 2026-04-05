@@ -74,11 +74,15 @@ def run_pipeline_on_ec2():
     """SSH into EC2 and run eve_pipeline_v2.py in the background."""
     try:
         import io
+        from cryptography.hazmat.primitives.serialization import load_ssh_private_key
+        from cryptography.hazmat.backends import default_backend
         ec2 = st.secrets["ec2"]
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        # Load private key from secret string rather than a file path
-        pkey = paramiko.RSAKey.from_private_key(io.StringIO(ec2["key"]))
+        key_str = ec2["key"].replace("\\n", "\n")
+        key_bytes = key_str.encode("utf-8")
+        crypto_key = load_ssh_private_key(key_bytes, password=None, backend=default_backend())
+        pkey = paramiko.Ed25519Key(key=crypto_key)
         client.connect(ec2["host"], username=ec2["user"], pkey=pkey, timeout=15)
         client.exec_command(
             "nohup python3 /home/ec2-user/eve_pipeline_v2.py "
