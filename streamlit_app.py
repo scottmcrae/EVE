@@ -589,7 +589,7 @@ def render_all(whale_df, mid_df, vol_df):
             key="combined_sort"
         )
     combined_sort_map = {
-        "Margin":     "margin_pct",
+        "Margin":     "adj_margin",
         "Spread":     "spread",
         "Buy":        "buy_price",
         "Est. Profit":"est_profit",
@@ -610,6 +610,10 @@ def render_all(whale_df, mid_df, vol_df):
         if search:         combined = combined[combined["type_name"].str.lower().str.contains(search, na=False)]
 
     combined["est_profit"] = combined.apply(compute_est_profit, axis=1)
+    combined["adj_margin"] = combined.apply(
+        lambda r: max(0, abs((r["buy_price"] - r["sell_price"]) / r["buy_price"]) * 100 - market_tax)
+        if r["buy_price"] > 0 else 0, axis=1
+    )
     combined = combined.sort_values(combined_sort_map[combined_sort_col], ascending=False)
 
     if combined.empty:
