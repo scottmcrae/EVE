@@ -585,7 +585,7 @@ def render_all(whale_df, mid_df, vol_df):
     with ct3:
         combined_sort_col = st.selectbox(
             "Sort by",
-            ["Margin", "Spread", "Buy", "Est. Profit", "Daily_SV", "Daily_BV", "Est_Spread", "Est_Margin"],
+            ["Est_Margin", "Margin", "Spread", "Buy", "Est. Profit", "Daily_SV", "Daily_BV", "Est_Spread"],
             key="combined_sort"
         )
     combined_sort_map = {
@@ -684,13 +684,13 @@ def build_combined_table(df, capital=100_000_000):
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Adj_Margin <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asp\',this)">ASP <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abp\',this)">ABP <span class="si"></span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estspread\',this)">Est_Spread <span class="si"></span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estmargin\',this)">Est_Margin <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estspread\',this)" title="abs(buy - ASP) if ASP ≠ 0 else 0">Est_Spread <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estmargin\',this)" title="abs((buy - ASP) / ASP × (100 - tax%)) if ASP ≠ 0 else 0">Est_Margin <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asv\',this)">ASV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abv\',this)">ABV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dsv\',this)">Daily_SV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dbv\',this)">Daily_BV <span class="si"></span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'est\',this)">Est. Profit <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'est\',this)" title="(min(ASV, ABV) - min(Daily_SV, Daily_BV)) × (1 - tax%) × (sell - buy)">Est. Profit <span class="si"></span></th>' +
         f'</tr></thead><tbody>{rows}</tbody></table></div>'
     )
     return hdr + JS
