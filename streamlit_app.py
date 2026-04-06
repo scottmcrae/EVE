@@ -447,7 +447,7 @@ def build_haul_table(df, cargo_capacity=6500, capital=100_000_000, tax_rate=5.02
             f'<td>{jumps}</td>' +
             f'<td>{items:,}</td>' +
             f'<td>{int(r["goods_volume"]):,}</td>' +
-            f'<td class="isk-high">{fmt(adj_profit)} ISK</td>' +
+            f'<td>{fmt(adj_profit)} ISK</td>' +
             f'<td>{r["selling_station"]}</td>' +
             f'<td>{r["buying_station"]}</td>' +
             f'</tr>'
