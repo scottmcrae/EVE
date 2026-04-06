@@ -442,9 +442,9 @@ def build_haul_table(df, cargo_capacity=6500, capital=100_000_000, tax_rate=5.02
             f'<td>{vol:,.2f}</td>' +
             f'<td>{fmt(sell_p)} ISK</td>' +
             f'<td>{fmt(buy_p)} ISK</td>' +
-            f'<td class="{adj_m_cls}">{adj_margin:.2f}%</td>' +
-            f'<td class="{jf_cls}">{jumps_from}</td>' +
-            f'<td class="{haul_jumps_cls(r.get("jumps"))}">{jumps}</td>' +
+            f'<td>{adj_margin:.2f}%</td>' +
+            f'<td>{jumps_from}</td>' +
+            f'<td>{jumps}</td>' +
             f'<td>{items:,}</td>' +
             f'<td>{int(r["goods_volume"]):,}</td>' +
             f'<td class="isk-high">{fmt(adj_profit)} ISK</td>' +
