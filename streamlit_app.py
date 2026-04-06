@@ -199,7 +199,7 @@ def fetch_finished_at():
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT TO_CHAR(
-                    current_time AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago',
+                    (CURRENT_DATE + current_time) AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago',
                     'Day HH12:MIam'
                 ) FROM public.test_now LIMIT 1
             """)
