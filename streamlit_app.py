@@ -620,7 +620,7 @@ def render_all(whale_df, mid_df, vol_df):
         lambda r: abs(r["buy_price"] - r["asp"]) if r["asp"] != 0 else 0, axis=1
     )
     combined["est_margin"] = combined.apply(
-        lambda r: abs((r["buy_price"] - r["asp"]) / r["asp"] * (100 - market_tax))
+        lambda r: abs((r["buy_price"] - r["asp"]) / r["buy_price"] * (100 - market_tax))
         if r["asp"] != 0 else 0, axis=1
     )
     combined = combined.sort_values(combined_sort_map[combined_sort_col], ascending=False)
@@ -685,7 +685,7 @@ def build_combined_table(df, capital=100_000_000):
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asp\',this)">ASP <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abp\',this)">ABP <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estspread\',this)" title="abs(buy - ASP) if ASP ≠ 0 else 0">Est_Spread <span class="si"></span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estmargin\',this)" title="abs((buy - ASP) / ASP × (100 - tax%)) if ASP ≠ 0 else 0">Est_Margin <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estmargin\',this)" title="abs((buy - ASP) / buy × (100 - tax%)) if ASP ≠ 0 else 0">Est_Margin <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asv\',this)">ASV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abv\',this)">ABV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dsv\',this)">Daily_SV <span class="si"></span></th>' +
