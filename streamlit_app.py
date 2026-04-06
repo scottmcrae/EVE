@@ -585,7 +585,7 @@ def render_all(whale_df, mid_df, vol_df):
     with ct3:
         combined_sort_col = st.selectbox(
             "Sort by",
-            ["Margin", "Spread", "Buy", "Est. Profit", "Daily_SV", "Daily_BV"],
+            ["Margin", "Spread", "Buy", "Est. Profit", "Daily_SV", "Daily_BV", "Est_Spread", "Est_Margin"],
             key="combined_sort"
         )
     combined_sort_map = {
@@ -595,6 +595,8 @@ def render_all(whale_df, mid_df, vol_df):
         "Est. Profit":"est_profit",
         "Daily_SV":   "daily_sv",
         "Daily_BV":   "daily_bv",
+        "Est_Spread": "est_spread",
+        "Est_Margin": "est_margin",
     }
 
     # Re-fetch data if combined_system differs from selected_system
@@ -613,6 +615,13 @@ def render_all(whale_df, mid_df, vol_df):
     combined["adj_margin"] = combined.apply(
         lambda r: max(0, abs((r["buy_price"] - r["sell_price"]) / r["buy_price"]) * 100 - market_tax)
         if r["buy_price"] > 0 else 0, axis=1
+    )
+    combined["est_spread"] = combined.apply(
+        lambda r: abs(r["buy_price"] - r["asp"]) if r["asp"] != 0 else 0, axis=1
+    )
+    combined["est_margin"] = combined.apply(
+        lambda r: (r["buy_price"] - r["asp"]) / r["asp"] * (100 - market_tax)
+        if r["asp"] != 0 else 0, axis=1
     )
     combined = combined.sort_values(combined_sort_map[combined_sort_col], ascending=False)
 
@@ -644,6 +653,7 @@ def build_combined_table(df, capital=100_000_000):
         name_safe = str(r["type_name"]).replace('"', "&quot;")
         est_profit = r.get("est_profit", 0)
         est_spread = abs(r["buy_price"] - r["asp"]) if r["asp"] != 0 else 0
+        est_margin = r.get("est_margin", 0)
         rows += (
             f'<tr class="{"top-row-"+tier if i < 3 else ""}"' +
             f' data-name="{name_safe.lower()}" data-buy="{r["buy_price"]}" data-spread="{r["spread"]}"' +
@@ -656,6 +666,7 @@ def build_combined_table(df, capital=100_000_000):
             f'<td>{fmt(r["asp"])} ISK</td>' +
             f'<td>{fmt(r["abp"])} ISK</td>' +
             f'<td>{fmt(est_spread)} ISK</td>' +
+            f'<td>{est_margin:.2f}%</td>' +
             f'<td>{r["asv"]:,.0f}</td>' +
             f'<td>{r["abv"]:,.0f}</td>' +
             f'<td>{r["daily_sv"]:,.0f}</td>' +
@@ -674,6 +685,7 @@ def build_combined_table(df, capital=100_000_000):
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asp\',this)">ASP <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abp\',this)">ABP <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estspread\',this)">Est_Spread <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estmargin\',this)">Est_Margin <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asv\',this)">ASV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abv\',this)">ABV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dsv\',this)">Daily_SV <span class="si"></span></th>' +
