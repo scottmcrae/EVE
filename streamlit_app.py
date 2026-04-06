@@ -563,7 +563,7 @@ def render_all(whale_df, mid_df, vol_df):
             return 0
 
     all_systems = fetch_all_systems()
-    ct0, ct1, ct2, ct3 = st.columns([2, 2, 2, 3])
+    ct0, ct3, ct1, ct2 = st.columns([2, 3, 2, 2])
     with ct0:
         try:
             combined_default = all_systems.index(selected_system) if selected_system in all_systems else 0
