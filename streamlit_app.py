@@ -643,7 +643,7 @@ def build_combined_table(df, capital=100_000_000):
             f'<td>{fmt(r["sell_price"])} ISK</td>' +
             f'<td>{fmt(r["buy_price"])} ISK</td>' +
             f'<td>{fmt(r["sell_price"] - r["buy_price"])} ISK</td>' +
-            f'<td>{max(0, abs((r["buy_price"] - r["sell_price"]) / r["sell_price"]) * 100 - market_tax):.2f}%</td>' +
+            f'<td>{max(0, abs((r["buy_price"] - r["sell_price"]) / r["buy_price"]) * 100 - market_tax):.2f}%</td>' +
             f'<td>{fmt(r["asp"])} ISK</td>' +
             f'<td>{fmt(r["abp"])} ISK</td>' +
             f'<td>{r["asv"]:,.0f}</td>' +
