@@ -537,6 +537,13 @@ with st.sidebar:
 # ── Tabs ───────────────────────────────────────────────────────────────────
 
 def render_all(whale_df, mid_df, vol_df):
+    # Read controls from session state first to avoid UnboundLocalError
+    market_tax = st.session_state.get("combined_tax", st.session_state.get("market_tax", 5.02))
+    try:
+        capital = int(str(st.session_state.get("combined_capital", "100,000,000")).replace(",", "").replace(" ", ""))
+    except ValueError:
+        capital = 100_000_000
+
     # Combine all tiers into one DataFrame
     combined = pd.concat([whale_df, mid_df, vol_df]).drop_duplicates(subset=["type_name"])
     combined["cost"] = combined["capturable"] * combined["buy_price"]
