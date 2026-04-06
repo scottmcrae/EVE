@@ -2,7 +2,7 @@ import streamlit as st
 import psycopg2
 import psycopg2.extras
 import pandas as pd
-from datetime import timezone
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import paramiko
 import threading
@@ -70,7 +70,42 @@ def get_connection():
 
 
 # ── Remote pipeline trigger ─────────────────────────────────────────────────
-def run_pipeline_on_ec2():
+def get_pipeline_last_run():
+    """Check when the pipeline button was last pressed."""
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS pipeline_button_log (
+                    id      INT PRIMARY KEY DEFAULT 1,
+                    last_run TIMESTAMPTZ
+                );
+                INSERT INTO pipeline_button_log (id, last_run)
+                VALUES (1, NULL)
+                ON CONFLICT (id) DO NOTHING;
+                SELECT last_run FROM pipeline_button_log WHERE id = 1;
+            """)
+            row = cur.fetchone()
+            conn.commit()
+        conn.close()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+def set_pipeline_last_run():
+    """Record that the pipeline button was just pressed."""
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO pipeline_button_log (id, last_run)
+                VALUES (1, NOW())
+                ON CONFLICT (id) DO UPDATE SET last_run = NOW();
+            """)
+            conn.commit()
+        conn.close()
+    except Exception:
+        pass
     """SSH into EC2 and run eve_pipeline_v2.py in the background."""
     try:
         import io, base64
@@ -116,6 +151,25 @@ def fetch_systems():
         conn.close()
 
 
+@st.cache_data(ttl=3600)
+def fetch_all_systems():
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT system_name
+                FROM public.market_spread_jita_view
+                WHERE system_name IS NOT NULL
+                  AND sell_price > 0
+                  AND buy_price > 0
+                  AND spread > 0
+                ORDER BY system_name
+            """)
+            return [r[0] for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
 @st.cache_data(ttl=300)
 def fetch_last_update():
     conn = get_connection()
@@ -145,7 +199,7 @@ def fetch_finished_at():
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT TO_CHAR(
-                    (NOW()::date::text || ' ' || current_time::text)::timestamptz AT TIME ZONE 'America/Chicago' - INTERVAL '1 hour',
+                    current_time AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago',
                     'Day HH12:MIam'
                 ) FROM public.test_now LIMIT 1
             """)
@@ -168,6 +222,8 @@ def fetch_data(system_name="Jita"):
                 COALESCE(margin,                  0)::float AS margin,
                 COALESCE(sell_avg_rolling_volume, 0)::float AS asv,
                 COALESCE(buy_avg_rolling_volume,  0)::float AS abv,
+                COALESCE(sell_avg_price,          0)::float AS asp,
+                COALESCE(buy_avg_price,           0)::float AS abp,
                 COALESCE(sell_volume,             0)::float AS sold_today,
                 COALESCE(sell_volume,             0)::float AS daily_sv,
                 COALESCE(buy_volume,              0)::float AS daily_bv,
@@ -325,9 +381,9 @@ def build_table(df, tier="whale"):
             f' data-name="{name_safe.lower()}" data-buy="{r["buy_price"]}" data-spread="{r["spread"]}"'
             f' data-margin="{r["margin_pct"]}" data-asv="{r["asv"]}" data-abv="{r["abv"]}">'
             f'<td>{r["type_name"]}</td>'
-            f'<td class="{buy_cls(r["buy_price"])}">{fmt(r["buy_price"])} ISK</td>'
+            f'<td>{fmt(r["buy_price"])} ISK</td>'
             f'<td>{fmt(r["spread"])} ISK</td>'
-            f'<td class="{mg_cls(r["margin_pct"], tier)}">{r["margin_pct"]:.1f}%</td>'
+            f'<td>{r["margin_pct"]:.1f}%</td>'
             f'<td>{r["asv"]:,.0f}</td>'
             f'<td>{r["abv"]:,.0f}</td>'
             f'</tr>'
@@ -416,16 +472,8 @@ def build_haul_table(df, cargo_capacity=6500, capital=100_000_000, tax_rate=5.02
     return hdr + JS
 
 
-# ── System selector ────────────────────────────────────────────────────────
-try:
-    systems     = fetch_systems()
-    default_idx = systems.index("Jita") if "Jita" in systems else 0
-except Exception:
-    systems     = ["Jita"]
-    default_idx = 0
-
 # ── Header ─────────────────────────────────────────────────────────────────
-col_logo, col_sys, col_btn, col_pipeline = st.columns([5, 2, 1, 1])
+col_logo, col_btn = st.columns([6, 1])
 with col_logo:
     st.markdown("""
     <div style="display:flex;align-items:center;gap:14px;padding-bottom:0;margin-bottom:0;">
@@ -435,24 +483,14 @@ with col_logo:
             <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#7a90a8;letter-spacing:1px;">HIGHSEC SPREAD ANALYSIS</div>
         </div>
     </div>""", unsafe_allow_html=True)
-with col_sys:
-    st.markdown("<div style='margin-top:6px'></div>", unsafe_allow_html=True)
-    selected_system = st.selectbox("", systems, index=default_idx, key="system_select", label_visibility="collapsed")
 with col_btn:
     st.write(""); st.write("")
     if st.button("↻  REFRESH", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-with col_pipeline:
-    st.write(""); st.write("")
-    if st.button("⚡ Fresh Transport Data", use_container_width=True):
-        with st.spinner("Starting pipeline on EC2..."):
-            ok, msg = run_pipeline_on_ec2()
-        if ok:
-            st.success("Pipeline started — data will update in ~5 min.")
-        else:
-            st.error(f"Failed: {msg}")
 st.markdown("<div style='border-bottom:1px solid #1e2530;margin-bottom:20px;margin-top:8px'></div>", unsafe_allow_html=True)
+
+selected_system = "Jita"
 
 # ── Load data ──────────────────────────────────────────────────────────────
 with st.spinner("Connecting to market database..."):
@@ -470,15 +508,18 @@ mid_df   = tier_slice(df, "mid").sort_values("daily_isk", ascending=False)
 vol_df   = tier_slice(df, "vol").sort_values("daily_isk", ascending=False)
 
 st.markdown(f"""<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#3d5068;letter-spacing:1px;margin-bottom:20px;">
-STARTED AT: <span style="color:#c8d4e0">{last_update}</span> &nbsp;|&nbsp; FINISHED AT: <span style="color:#c8d4e0">{finished_at}</span>
-&nbsp;|&nbsp; SOURCE: market_spread_jita_view
+MARKET TIME: <span style="color:#c8d4e0">{last_update}</span> &nbsp;|&nbsp; QUERIES FINISHED: <span style="color:#c8d4e0">{finished_at}</span>
 </div>""", unsafe_allow_html=True)
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:16px;">◈ FILTERS</div>', unsafe_allow_html=True)
     market_tax = st.number_input("Market Tax (%)", min_value=0.0, value=5.02, step=0.01, format="%.2f", key="market_tax")
-    capital    = st.number_input("Capital (ISK)", min_value=0, value=100000000, step=1000000, key="market_capital")
+    capital_raw = st.text_input("Capital (ISK)", value="100,000,000", key="market_capital")
+    try:
+        capital = int(capital_raw.replace(",", "").replace(" ", ""))
+    except ValueError:
+        capital = 100_000_000
     sort_col   = st.selectbox("Sort by", ["PROFIT", "Spread/unit", "Margin %", "ASV", "ABV", "COST"])
     sort_map   = {"PROFIT": "daily_isk", "Spread/unit": "spread", "Margin %": "margin_pct", "ASV": "asv", "ABV": "abv", "COST": "cost"}
     sort_key   = sort_map[sort_col]
@@ -489,14 +530,70 @@ with st.sidebar:
 # ── Tabs ───────────────────────────────────────────────────────────────────
 
 def render_all(whale_df, mid_df, vol_df):
-    # Combine all tiers into one DataFrame, sorted by daily_isk desc
+    # Combine all tiers into one DataFrame
     combined = pd.concat([whale_df, mid_df, vol_df]).drop_duplicates(subset=["type_name"])
     combined["cost"] = combined["capturable"] * combined["buy_price"]
     combined = combined[combined["margin_pct"] > market_tax]
     if min_margin > 0: combined = combined[combined["margin_pct"] >= min_margin]
     if min_spread > 0: combined = combined[combined["spread"] >= min_spread]
     if search:         combined = combined[combined["type_name"].str.lower().str.contains(search, na=False)]
-    combined = combined.sort_values(sort_key, ascending=False)
+
+    # Compute est_profit for sorting
+    def compute_est_profit(r):
+        try:
+            tax = market_tax / 100
+            min_avg   = min(r["asv"], r["abv"])
+            min_daily = min(r["daily_sv"], r["daily_bv"])
+            return max(0, (min_avg - min_daily) * (1 - tax) * (r["sell_price"] - r["buy_price"]))
+        except Exception:
+            return 0
+
+    all_systems = fetch_all_systems()
+    ct0, ct1, ct2, ct3 = st.columns([2, 2, 2, 3])
+    with ct0:
+        try:
+            combined_default = all_systems.index(selected_system) if selected_system in all_systems else 0
+        except Exception:
+            combined_default = 0
+        combined_system = st.selectbox("System", all_systems, index=combined_default, key="combined_system")
+    with ct1:
+        capital_raw2 = st.text_input("Capital (ISK)", value=f"{capital:,}", key="combined_capital")
+        try:
+            capital = int(capital_raw2.replace(",", "").replace(" ", ""))
+        except ValueError:
+            pass
+    with ct2:
+        market_tax = st.number_input("Taxes (%)", min_value=0.0, value=market_tax, step=0.01, format="%.2f", key="combined_tax")
+    with ct3:
+        combined_sort_col = st.selectbox(
+            "Sort by",
+            ["Margin", "Spread", "Buy", "Est. Profit", "Daily_SV", "Daily_BV"],
+            key="combined_sort"
+        )
+    combined_sort_map = {
+        "Margin":     "margin_pct",
+        "Spread":     "spread",
+        "Buy":        "buy_price",
+        "Est. Profit":"est_profit",
+        "Daily_SV":   "daily_sv",
+        "Daily_BV":   "daily_bv",
+    }
+
+    # Re-fetch data if combined_system differs from selected_system
+    if combined_system != selected_system:
+        try:
+            combined = process(fetch_data(combined_system))
+        except Exception:
+            combined = pd.concat([whale_df, mid_df, vol_df]).drop_duplicates(subset=["type_name"])
+        combined["cost"] = combined["capturable"] * combined["buy_price"]
+        combined = combined[combined["margin_pct"] > market_tax]
+        if min_margin > 0: combined = combined[combined["margin_pct"] >= min_margin]
+        if min_spread > 0: combined = combined[combined["spread"] >= min_spread]
+        if search:         combined = combined[combined["type_name"].str.lower().str.contains(search, na=False)]
+
+    combined["est_profit"] = combined.apply(compute_est_profit, axis=1)
+    combined = combined.sort_values(combined_sort_map[combined_sort_col], ascending=False)
+
     if combined.empty:
         st.warning("No items match your filters.")
         return
@@ -523,32 +620,35 @@ def build_combined_table(df, capital=100_000_000):
             continue
         tier      = r["tier"]
         name_safe = str(r["type_name"]).replace('"', "&quot;")
-        min_avg   = min(r["asv"], r["abv"])
-        min_daily = min(r["daily_sv"], r["daily_bv"])
-        tax       = market_tax / 100
-        est_profit = max(0, (min_avg - min_daily) * (1 - tax) * (r["sell_price"] - r["buy_price"]))
+        est_profit = r.get("est_profit", 0)
         rows += (
             f'<tr class="{"top-row-"+tier if i < 3 else ""}"' +
             f' data-name="{name_safe.lower()}" data-buy="{r["buy_price"]}" data-spread="{r["spread"]}"' +
             f' data-margin="{r["margin_pct"]}" data-asv="{r["asv"]}" data-abv="{r["abv"]}">' +
             f'<td>{r["type_name"]}</td>' +
-            f'<td class="{buy_cls(r["buy_price"])}">{fmt(r["buy_price"])} ISK</td>' +
+            f'<td>{fmt(r["sell_price"])} ISK</td>' +
+            f'<td>{fmt(r["buy_price"])} ISK</td>' +
             f'<td>{fmt(r["sell_price"] - r["buy_price"])} ISK</td>' +
-            f'<td class="{mg_cls(r["margin_pct"], tier)}">{abs((r["buy_price"] - r["sell_price"]) / r["sell_price"]) * 100:.1f}%</td>' +
+            f'<td>{max(0, abs((r["buy_price"] - r["sell_price"]) / r["sell_price"]) * 100 - market_tax):.2f}%</td>' +
+            f'<td>{fmt(r["asp"])} ISK</td>' +
+            f'<td>{fmt(r["abp"])} ISK</td>' +
             f'<td>{r["asv"]:,.0f}</td>' +
             f'<td>{r["abv"]:,.0f}</td>' +
             f'<td>{r["daily_sv"]:,.0f}</td>' +
             f'<td>{r["daily_bv"]:,.0f}</td>' +
-            f'<td class="{isk_cls(est_profit / 1_000_000, tier)}">{fmt(est_profit)} ISK</td>' +
+            f'<td>{fmt(est_profit)} ISK</td>' +
             f'</tr>'
         )
     hdr = (
-        f'<div style="overflow-x:auto;height:600px;overflow-y:scroll;border:1px solid #1e2530;">' +
+        f'<div style="overflow-x:auto;height:500px;overflow-y:scroll;border:1px solid #1e2530;">' +
         f'<table class="mkt-table" id="{tid}"><thead style="position:sticky;top:0;z-index:10;"><tr>' +
         f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'name\',this)">Item <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sell\',this)">Sell <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'buy\',this)">Buy <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'spread\',this)">Spread <span class="si"></span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Margin <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Adj_Margin <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asp\',this)">ASP <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abp\',this)">ABP <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asv\',this)">ASV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abv\',this)">ABV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dsv\',this)">Daily_SV <span class="si"></span></th>' +
@@ -562,7 +662,11 @@ def build_combined_table(df, capital=100_000_000):
 render_all(whale_df, mid_df, vol_df)
 
 # ── Hauling Opportunities ──────────────────────────────────────────────────
-_hc1, _hc2, _hc3, _hc4, _hc5 = st.columns([3, 2, 2, 1, 2])
+st.markdown(f"""<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#3d5068;letter-spacing:1px;margin-top:40px;padding-top:20px;border-top:1px solid #1e2530;">
+HAULING MARKET TIME: <span style="color:#c8d4e0">{finished_at}</span>
+</div>""", unsafe_allow_html=True)
+
+_hc1, _hc2, _hc3, _hc4, _hc5, _hc6 = st.columns([3, 2, 2, 1, 2, 1])
 with _hc1:
     st.markdown("""
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:40px;margin-bottom:12px;padding-top:20px;border-top:1px solid #1e2530;">
@@ -586,6 +690,21 @@ with _hc4:
 with _hc5:
     st.markdown("<div style='margin-top:34px'></div>", unsafe_allow_html=True)
     capital = st.number_input("Capital", min_value=0, value=100000000, step=1000000, key="haul_capital")
+with _hc6:
+    st.markdown("<div style='margin-top:34px'></div>", unsafe_allow_html=True)
+    last_run = get_pipeline_last_run()
+    cooldown_seconds = 20 * 60
+    if last_run is None or (datetime.now(timezone.utc) - last_run).total_seconds() > cooldown_seconds:
+        if st.button("⚡ Refresh Hauling Data", use_container_width=True):
+            with st.spinner("Starting pipeline on EC2..."):
+                ok, msg = run_pipeline_on_ec2()
+            if ok:
+                set_pipeline_last_run()
+                st.success("Pipeline started — data will update in ~5 min.")
+            else:
+                st.error(f"Failed: {msg}")
+    else:
+        pass
 
 try:
     haul_df = fetch_hauling()
