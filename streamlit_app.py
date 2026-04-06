@@ -512,6 +512,13 @@ MARKET TIME: <span style="color:#c8d4e0">{last_update}</span> &nbsp;|&nbsp; QUER
 </div>""", unsafe_allow_html=True)
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
+market_tax = st.session_state.get("market_tax", 5.02)
+capital_raw = st.session_state.get("market_capital", "100,000,000")
+try:
+    capital = int(str(capital_raw).replace(",", "").replace(" ", ""))
+except ValueError:
+    capital = 100_000_000
+
 with st.sidebar:
     st.markdown('<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:16px;">◈ FILTERS</div>', unsafe_allow_html=True)
     market_tax = st.number_input("Market Tax (%)", min_value=0.0, value=5.02, step=0.01, format="%.2f", key="market_tax")
