@@ -620,7 +620,7 @@ def render_all(whale_df, mid_df, vol_df):
         lambda r: abs(r["buy_price"] - r["asp"]) if r["asp"] != 0 else 0, axis=1
     )
     combined["est_margin"] = combined.apply(
-        lambda r: (r["buy_price"] - r["asp"]) / r["asp"] * (100 - market_tax)
+        lambda r: abs((r["buy_price"] - r["asp"]) / r["asp"] * (100 - market_tax))
         if r["asp"] != 0 else 0, axis=1
     )
     combined = combined.sort_values(combined_sort_map[combined_sort_col], ascending=False)
