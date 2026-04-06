@@ -748,7 +748,7 @@ try:
     if haul_df.empty:
         st.warning("No hauling opportunities found.")
     else:
-        hcol_sort = st.selectbox("Sort by ", ["Adj. Profit", "Margin", "DST Jumps", "SRC Jumps"], key="haul_sort")
+        hcol_sort = st.selectbox("Sort by ", ["Adj. Profit", "Adj Margin", "DST Jumps", "SRC Jumps", "From", "To"], key="haul_sort")
         haul_df["margin"] = pd.to_numeric(haul_df["margin"], errors="coerce").fillna(0)
         haul_df["volume"] = pd.to_numeric(haul_df["volume"], errors="coerce").fillna(1)
         haul_df["goods_volume"] = pd.to_numeric(haul_df["goods_volume"], errors="coerce").fillna(0)
@@ -788,8 +788,12 @@ try:
             haul_df = haul_df.sort_values("jumps_from", ascending=True)
         elif hcol_sort == "DST Jumps":
             haul_df = haul_df.sort_values("jumps", ascending=True)
-        else:
+        elif hcol_sort == "Adj Margin":
             haul_df = haul_df.sort_values("adj_margin", ascending=False)
+        elif hcol_sort == "From":
+            haul_df = haul_df.sort_values("selling_station", ascending=True)
+        elif hcol_sort == "To":
+            haul_df = haul_df.sort_values("buying_station", ascending=True)
         st.markdown(build_haul_table(haul_df, cargo_capacity=cargo_capacity, capital=capital, tax_rate=taxes), unsafe_allow_html=True)
 except Exception as e:
     st.error(f"⚠ Hauling data unavailable: {e}")
