@@ -70,6 +70,27 @@ def get_connection():
 
 
 # ── Remote pipeline trigger ─────────────────────────────────────────────────
+def run_pipeline_on_ec2():
+    """SSH into EC2 and run eve_pipeline_v2.py in the background."""
+    try:
+        import io, base64
+        ec2 = st.secrets["ec2"]
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        key_bytes = base64.b64decode(ec2["key_b64"])
+        key_str   = key_bytes.decode("utf-8")
+        pkey = paramiko.Ed25519Key.from_private_key(io.StringIO(key_str))
+        client.connect(ec2["host"], username=ec2["user"], pkey=pkey, timeout=15)
+        client.exec_command(
+            "nohup python3 /home/ec2-user/eve_pipeline_v2.py "
+            "> /home/ec2-user/eve_pipeline_v2.log 2>&1 &"
+        )
+        client.close()
+        return True, "Pipeline started on EC2."
+    except Exception as e:
+        return False, str(e)
+
+
 def get_pipeline_last_run():
     """Check when the pipeline button was last pressed."""
     try:
@@ -92,6 +113,7 @@ def get_pipeline_last_run():
     except Exception:
         return None
 
+
 def set_pipeline_last_run():
     """Record that the pipeline button was just pressed."""
     try:
@@ -106,24 +128,6 @@ def set_pipeline_last_run():
         conn.close()
     except Exception:
         pass
-    """SSH into EC2 and run eve_pipeline_v2.py in the background."""
-    try:
-        import io, base64
-        ec2 = st.secrets["ec2"]
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        key_bytes = base64.b64decode(ec2["key_b64"])
-        key_str   = key_bytes.decode("utf-8")
-        pkey = paramiko.Ed25519Key.from_private_key(io.StringIO(key_str))
-        client.connect(ec2["host"], username=ec2["user"], pkey=pkey, timeout=15)
-        client.exec_command(
-            "nohup python3 /home/ec2-user/eve_pipeline_v2.py "
-            "> /home/ec2-user/eve_pipeline_v2.log 2>&1 &"
-        )
-        client.close()
-        return True, "Pipeline started on EC2."
-    except Exception as e:
-        return False, str(e)
 
 
 @st.cache_data(ttl=3600)
