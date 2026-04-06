@@ -643,6 +643,7 @@ def build_combined_table(df, capital=100_000_000):
         tier      = r["tier"]
         name_safe = str(r["type_name"]).replace('"', "&quot;")
         est_profit = r.get("est_profit", 0)
+        est_spread = abs(r["buy_price"] - r["asp"]) if r["asp"] != 0 else 0
         rows += (
             f'<tr class="{"top-row-"+tier if i < 3 else ""}"' +
             f' data-name="{name_safe.lower()}" data-buy="{r["buy_price"]}" data-spread="{r["spread"]}"' +
@@ -654,6 +655,7 @@ def build_combined_table(df, capital=100_000_000):
             f'<td>{max(0, abs((r["buy_price"] - r["sell_price"]) / r["buy_price"]) * 100 - market_tax):.2f}%</td>' +
             f'<td>{fmt(r["asp"])} ISK</td>' +
             f'<td>{fmt(r["abp"])} ISK</td>' +
+            f'<td>{fmt(est_spread)} ISK</td>' +
             f'<td>{r["asv"]:,.0f}</td>' +
             f'<td>{r["abv"]:,.0f}</td>' +
             f'<td>{r["daily_sv"]:,.0f}</td>' +
@@ -671,6 +673,7 @@ def build_combined_table(df, capital=100_000_000):
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Adj_Margin <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asp\',this)">ASP <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abp\',this)">ABP <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'estspread\',this)">Est_Spread <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asv\',this)">ASV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abv\',this)">ABV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dsv\',this)">Daily_SV <span class="si"></span></th>' +
