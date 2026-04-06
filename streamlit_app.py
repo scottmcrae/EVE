@@ -169,6 +169,8 @@ def fetch_data(system_name="Jita"):
                 COALESCE(sell_avg_rolling_volume, 0)::float AS asv,
                 COALESCE(buy_avg_rolling_volume,  0)::float AS abv,
                 COALESCE(sell_volume,             0)::float AS sold_today,
+                COALESCE(sell_volume,             0)::float AS daily_sv,
+                COALESCE(buy_volume,              0)::float AS daily_bv,
                 COALESCE(total_spread_value,      0)::float AS total_spread_value
             FROM public.market_spread_jita_view
             WHERE system_name = %s
@@ -317,23 +319,17 @@ def build_table(df, tier="whale"):
     tid  = f"tbl-{tier}"
     rows = ""
     for i, (_, r) in enumerate(df.iterrows()):
-        sold      = f"{r['sold_today']:,.0f}" if r["sold_today"] > 0 else '<span class="dim">—</span>'
         name_safe = str(r["type_name"]).replace('"', "&quot;")
-        cost      = r["capturable"] * r["buy_price"]
         rows += (
             f'<tr class="{"top-row-"+tier if i < 3 else ""}"'
             f' data-name="{name_safe.lower()}" data-buy="{r["buy_price"]}" data-spread="{r["spread"]}"'
-            f' data-margin="{r["margin_pct"]}" data-asv="{r["asv"]}" data-abv="{r["abv"]}"'
-            f' data-sold="{r["sold_today"]}" data-isk="{r["daily_isk"]}" data-cost="{cost}">'
+            f' data-margin="{r["margin_pct"]}" data-asv="{r["asv"]}" data-abv="{r["abv"]}">'
             f'<td>{r["type_name"]}</td>'
             f'<td class="{buy_cls(r["buy_price"])}">{fmt(r["buy_price"])} ISK</td>'
             f'<td>{fmt(r["spread"])} ISK</td>'
             f'<td class="{mg_cls(r["margin_pct"], tier)}">{r["margin_pct"]:.1f}%</td>'
             f'<td>{r["asv"]:,.0f}</td>'
             f'<td>{r["abv"]:,.0f}</td>'
-            f'<td>{sold}</td>'
-            f'<td class="{isk_cls(r["daily_isk"], tier)}">{fmt(r["daily_isk"] * 1_000_000)} ISK</td>'
-            f'<td>{fmt(cost)} ISK</td>'
             f'</tr>'
         )
     hdr = (
@@ -345,9 +341,6 @@ def build_table(df, tier="whale"):
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Margin <span class="si"></span></th>'
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asv\',this)">ASV <span class="si"></span></th>'
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abv\',this)">ABV <span class="si"></span></th>'
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sold\',this)">Sold today <span class="si"></span></th>'
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'isk\',this)">PROFIT <span class="si">▼</span></th>'
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'cost\',this)">COST <span class="si"></span></th>'
         f'</tr></thead><tbody>{rows}</tbody></table></div>'
     )
     return hdr + JS
@@ -485,6 +478,7 @@ STARTED AT: <span style="color:#c8d4e0">{last_update}</span> &nbsp;|&nbsp; FINIS
 with st.sidebar:
     st.markdown('<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:16px;">◈ FILTERS</div>', unsafe_allow_html=True)
     market_tax = st.number_input("Market Tax (%)", min_value=0.0, value=5.02, step=0.01, format="%.2f", key="market_tax")
+    capital    = st.number_input("Capital (ISK)", min_value=0, value=100000000, step=1000000, key="market_capital")
     sort_col   = st.selectbox("Sort by", ["PROFIT", "Spread/unit", "Margin %", "ASV", "ABV", "COST"])
     sort_map   = {"PROFIT": "daily_isk", "Spread/unit": "spread", "Margin %": "margin_pct", "ASV": "asv", "ABV": "abv", "COST": "cost"}
     sort_key   = sort_map[sort_col]
@@ -515,34 +509,37 @@ def render_all(whale_df, mid_df, vol_df):
     combined["tier"] = combined.apply(get_tier, axis=1)
 
     try:
-        st.markdown(build_combined_table(combined), unsafe_allow_html=True)
+        st.markdown(build_combined_table(combined, capital), unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Table error: {e}")
-        st.dataframe(combined[["type_name", "buy_price", "spread", "margin_pct", "asv", "abv", "sold_today", "daily_isk"]])
+        st.dataframe(combined[["type_name", "buy_price", "spread", "margin_pct", "asv", "abv", "daily_sv", "daily_bv"]])
 
 
-def build_combined_table(df):
+def build_combined_table(df, capital=100_000_000):
     tid  = "tbl-main"
     rows = ""
     for i, (_, r) in enumerate(df.iterrows()):
+        if r["buy_price"] > capital:
+            continue
         tier      = r["tier"]
-        sold      = f"{r['sold_today']:,.0f}" if r["sold_today"] > 0 else '<span class="dim">—</span>'
         name_safe = str(r["type_name"]).replace('"', "&quot;")
-        cost      = r["capturable"] * r["buy_price"]
+        min_avg   = min(r["asv"], r["abv"])
+        min_daily = min(r["daily_sv"], r["daily_bv"])
+        tax       = market_tax / 100
+        est_profit = max(0, (min_avg - min_daily) * (1 - tax) * (r["sell_price"] - r["buy_price"]))
         rows += (
             f'<tr class="{"top-row-"+tier if i < 3 else ""}"' +
             f' data-name="{name_safe.lower()}" data-buy="{r["buy_price"]}" data-spread="{r["spread"]}"' +
-            f' data-margin="{r["margin_pct"]}" data-asv="{r["asv"]}" data-abv="{r["abv"]}"' +
-            f' data-sold="{r["sold_today"]}" data-isk="{r["daily_isk"]}" data-cost="{cost}">' +
+            f' data-margin="{r["margin_pct"]}" data-asv="{r["asv"]}" data-abv="{r["abv"]}">' +
             f'<td>{r["type_name"]}</td>' +
             f'<td class="{buy_cls(r["buy_price"])}">{fmt(r["buy_price"])} ISK</td>' +
             f'<td>{fmt(r["spread"])} ISK</td>' +
             f'<td class="{mg_cls(r["margin_pct"], tier)}">{r["margin_pct"]:.1f}%</td>' +
             f'<td>{r["asv"]:,.0f}</td>' +
             f'<td>{r["abv"]:,.0f}</td>' +
-            f'<td>{sold}</td>' +
-            f'<td class="{isk_cls(r["daily_isk"], tier)}">{fmt(r["daily_isk"] * 1_000_000)} ISK</td>' +
-            f'<td>{fmt(cost)} ISK</td>' +
+            f'<td>{r["daily_sv"]:,.0f}</td>' +
+            f'<td>{r["daily_bv"]:,.0f}</td>' +
+            f'<td class="{isk_cls(est_profit / 1_000_000, tier)}">{fmt(est_profit)} ISK</td>' +
             f'</tr>'
         )
     hdr = (
@@ -554,9 +551,9 @@ def build_combined_table(df):
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Margin <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'asv\',this)">ASV <span class="si"></span></th>' +
         f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'abv\',this)">ABV <span class="si"></span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sold\',this)">Sold today <span class="si"></span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'isk\',this)">PROFIT <span class="si">▼</span></th>' +
-        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'cost\',this)">COST <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dsv\',this)">Daily_SV <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'dbv\',this)">Daily_BV <span class="si"></span></th>' +
+        f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'est\',this)">Est. Profit <span class="si"></span></th>' +
         f'</tr></thead><tbody>{rows}</tbody></table></div>'
     )
     return hdr + JS
