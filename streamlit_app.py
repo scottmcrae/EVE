@@ -739,7 +739,7 @@ try:
                 f'<td>{r["type_name"]}</td>'
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
-                f'<td>{r["margin"]:.4f}</td>'
+                f'<td>{r["margin"] * 100:.2f}%</td>'
                 f'</tr>'
             )
         hdr = (
@@ -748,7 +748,7 @@ try:
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'name\',this)">Item <span class="si"></span></th>'
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'system\',this)">System <span class="si"></span></th>'
             f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sell\',this)">Sell Price <span class="si">▼</span></th>'
-            f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Margin <span class="si"></span></th>'
+            f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)" title="(2nd_Best_Sell - Buy / Buy) * 100">Margin <span class="si"></span></th>'
             f'</tr></thead><tbody>{rows}</tbody></table></div>'
         )
         st.markdown(hdr + JS, unsafe_allow_html=True)
