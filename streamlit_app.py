@@ -254,9 +254,10 @@ def fetch_ff_compare():
             SELECT
                 type_name,
                 system_name,
-                COALESCE(sell_price, 0)::float AS sell_price,
-                COALESCE(compare,    0)::float AS compare,
-                COALESCE(margin,     0)::float AS margin
+                COALESCE(sell_price,        0)::float AS sell_price,
+                COALESCE(compare,           0)::float AS compare,
+                COALESCE(margin,            0)::float AS margin,
+                COALESCE(avg_rolling_volume,0)::float AS avg_rolling_volume
             FROM public.ff_compare
             ORDER BY sell_price DESC
         """
@@ -731,6 +732,11 @@ try:
     else:
         ff_df = ff_df[ff_df["type_name"].notna() & (ff_df["type_name"] != "")]
         ff_df = ff_df[ff_df["margin"] * 100 >= 1]
+        ff_sort = st.selectbox("Sort by", ["Sell Price", "Margin"], key="ff_sort")
+        if ff_sort == "Sell Price":
+            ff_df = ff_df.sort_values("sell_price", ascending=False)
+        elif ff_sort == "Margin":
+            ff_df = ff_df.sort_values("margin", ascending=False)
         tid = "tbl-ff"
         rows = ""
         for _, r in ff_df.iterrows():
@@ -749,6 +755,7 @@ try:
                 f'<td>{r["type_name"]}</td>'
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
+                f'<td>{r["avg_rolling_volume"]:,.0f}</td>'
                 f'<td style="{margin_style}">{margin_pct:.2f}%</td>'
                 f'</tr>'
             )
@@ -758,6 +765,7 @@ try:
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'name\',this)">Item <span class="si"></span></th>'
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'system\',this)">System <span class="si"></span></th>'
             f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sell\',this)">Sell Price <span class="si">▼</span></th>'
+            f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'vol\',this)">Daily Sale Vol <span class="si"></span></th>'
             f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)" title="(2nd_Best_Sell - Buy / Buy) * 100">Margin <span class="si"></span></th>'
             f'</tr></thead><tbody>{rows}</tbody></table></div>'
         )
