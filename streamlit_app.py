@@ -246,6 +246,26 @@ def fetch_data(system_name="Jita"):
         conn.close()
 
 
+@st.cache_data(ttl=60)
+def fetch_ff_compare():
+    conn = get_connection()
+    try:
+        q = """
+            SELECT
+                type_name,
+                system_name,
+                COALESCE(sell_price, 0)::float AS sell_price,
+                COALESCE(compare,    0)::float AS compare
+            FROM public.ff_compare
+            ORDER BY sell_price DESC
+        """
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(q)
+            return pd.DataFrame(cur.fetchall())
+    finally:
+        conn.close()
+
+
 @st.cache_data(ttl=3600)
 def fetch_starting_systems():
     conn = get_connection()
@@ -698,12 +718,47 @@ def build_combined_table(df, capital=100_000_000):
 
 render_all(whale_df, mid_df, vol_df)
 
+# ── FF Compare ─────────────────────────────────────────────────────────────
+st.markdown("""<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:40px;margin-bottom:12px;padding-top:20px;border-top:1px solid #1e2530;">
+◈ FF Compare — Jita Spread Scanner
+</div>""", unsafe_allow_html=True)
+
+try:
+    ff_df = fetch_ff_compare()
+    if ff_df.empty:
+        st.warning("No ff_compare data found.")
+    else:
+        tid = "tbl-ff"
+        rows = ""
+        for _, r in ff_df.iterrows():
+            name_safe = str(r["type_name"]).replace('"', "&quot;")
+            rows += (
+                f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}" data-compare="{r["compare"]}">'
+                f'<td>{r["type_name"]}</td>'
+                f'<td>{r["system_name"]}</td>'
+                f'<td>{fmt(r["sell_price"])} ISK</td>'
+                f'<td>{r["compare"]:.4f}</td>'
+                f'</tr>'
+            )
+        hdr = (
+            f'<div style="overflow-x:auto;height:500px;overflow-y:scroll;border:1px solid #1e2530;">'
+            f'<table class="mkt-table" id="{tid}"><thead style="position:sticky;top:0;z-index:10;"><tr>'
+            f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'name\',this)">Item <span class="si"></span></th>'
+            f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'system\',this)">System <span class="si"></span></th>'
+            f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sell\',this)">Sell Price <span class="si">▼</span></th>'
+            f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'compare\',this)">Compare <span class="si"></span></th>'
+            f'</tr></thead><tbody>{rows}</tbody></table></div>'
+        )
+        st.markdown(hdr + JS, unsafe_allow_html=True)
+except Exception as e:
+    st.error(f"⚠ FF Compare unavailable: {e}")
+
 # ── Hauling Opportunities ──────────────────────────────────────────────────
 st.markdown(f"""<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#3d5068;letter-spacing:1px;margin-top:40px;padding-top:20px;border-top:1px solid #1e2530;">
 HAULING MARKET TIME: <span style="color:#c8d4e0">{finished_at}</span>
 </div>""", unsafe_allow_html=True)
 
-_hc1, _hc2, _hc3, _hc4, _hc5, _hc6 = st.columns([3, 2, 2, 1, 2, 1])
+_hc1, _hc2, _hc3, _hc4, _hc5 = st.columns([3, 2, 2, 1, 2])
 with _hc1:
     st.markdown("""
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:40px;margin-bottom:12px;padding-top:20px;border-top:1px solid #1e2530;">
@@ -727,21 +782,6 @@ with _hc4:
 with _hc5:
     st.markdown("<div style='margin-top:34px'></div>", unsafe_allow_html=True)
     capital = st.number_input("Capital", min_value=0, value=100000000, step=1000000, key="haul_capital")
-with _hc6:
-    st.markdown("<div style='margin-top:34px'></div>", unsafe_allow_html=True)
-    last_run = get_pipeline_last_run()
-    cooldown_seconds = 20 * 60
-    if last_run is None or (datetime.now(timezone.utc) - last_run).total_seconds() > cooldown_seconds:
-        if st.button("⚡ Refresh Hauling Data", use_container_width=True):
-            with st.spinner("Starting pipeline on EC2..."):
-                ok, msg = run_pipeline_on_ec2()
-            if ok:
-                set_pipeline_last_run()
-                st.success("Pipeline started — data will update in ~5 min.")
-            else:
-                st.error(f"Failed: {msg}")
-    else:
-        pass
 
 try:
     haul_df = fetch_hauling()
