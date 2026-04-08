@@ -735,12 +735,21 @@ try:
         rows = ""
         for _, r in ff_df.iterrows():
             name_safe = str(r["type_name"]).replace('"', "&quot;")
+            margin_pct = r["margin"] * 100
+            if margin_pct >= 1000:
+                margin_style = 'color:#ff5252;font-weight:600;'
+            elif margin_pct >= 100:
+                margin_style = 'color:#ff8c00;font-weight:600;'
+            elif margin_pct >= 10:
+                margin_style = 'color:#ffd700;font-weight:600;'
+            else:
+                margin_style = ''
             rows += (
                 f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}" data-margin="{r["margin"]}">'
                 f'<td>{r["type_name"]}</td>'
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
-                f'<td>{r["margin"] * 100:.2f}%</td>'
+                f'<td style="{margin_style}">{margin_pct:.2f}%</td>'
                 f'</tr>'
             )
         hdr = (
