@@ -255,7 +255,8 @@ def fetch_ff_compare():
                 type_name,
                 system_name,
                 COALESCE(sell_price, 0)::float AS sell_price,
-                COALESCE(compare,    0)::float AS compare
+                COALESCE(compare,    0)::float AS compare,
+                COALESCE(margin,     0)::float AS margin
             FROM public.ff_compare
             ORDER BY sell_price DESC
         """
@@ -734,10 +735,11 @@ try:
         for _, r in ff_df.iterrows():
             name_safe = str(r["type_name"]).replace('"', "&quot;")
             rows += (
-                f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}">'
+                f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}" data-margin="{r["margin"]}">'
                 f'<td>{r["type_name"]}</td>'
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
+                f'<td>{r["margin"]:.4f}</td>'
                 f'</tr>'
             )
         hdr = (
@@ -746,6 +748,7 @@ try:
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'name\',this)">Item <span class="si"></span></th>'
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'system\',this)">System <span class="si"></span></th>'
             f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sell\',this)">Sell Price <span class="si">▼</span></th>'
+            f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'margin\',this)">Margin <span class="si"></span></th>'
             f'</tr></thead><tbody>{rows}</tbody></table></div>'
         )
         st.markdown(hdr + JS, unsafe_allow_html=True)
