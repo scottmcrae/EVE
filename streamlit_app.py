@@ -720,7 +720,7 @@ render_all(whale_df, mid_df, vol_df)
 
 # ── FF Compare ─────────────────────────────────────────────────────────────
 st.markdown("""<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:40px;margin-bottom:12px;padding-top:20px;border-top:1px solid #1e2530;">
-◈ FF Compare — Jita Spread Scanner
+◈ Fat Fingers Query
 </div>""", unsafe_allow_html=True)
 
 try:
@@ -728,16 +728,16 @@ try:
     if ff_df.empty:
         st.warning("No ff_compare data found.")
     else:
+        ff_df = ff_df[ff_df["type_name"].notna() & (ff_df["type_name"] != "")]
         tid = "tbl-ff"
         rows = ""
         for _, r in ff_df.iterrows():
             name_safe = str(r["type_name"]).replace('"', "&quot;")
             rows += (
-                f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}" data-compare="{r["compare"]}">'
+                f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}">'
                 f'<td>{r["type_name"]}</td>'
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
-                f'<td>{r["compare"]:.4f}</td>'
                 f'</tr>'
             )
         hdr = (
@@ -746,7 +746,6 @@ try:
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'name\',this)">Item <span class="si"></span></th>'
             f'<th style="text-align:left;cursor:pointer" onclick="sortTable(\'{tid}\',\'system\',this)">System <span class="si"></span></th>'
             f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'sell\',this)">Sell Price <span class="si">▼</span></th>'
-            f'<th style="cursor:pointer" onclick="sortTable(\'{tid}\',\'compare\',this)">Compare <span class="si"></span></th>'
             f'</tr></thead><tbody>{rows}</tbody></table></div>'
         )
         st.markdown(hdr + JS, unsafe_allow_html=True)
