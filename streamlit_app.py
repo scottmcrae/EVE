@@ -730,6 +730,7 @@ try:
         st.warning("No ff_compare data found.")
     else:
         ff_df = ff_df[ff_df["type_name"].notna() & (ff_df["type_name"] != "")]
+        ff_df = ff_df[ff_df["margin"] * 100 >= 1]
         tid = "tbl-ff"
         rows = ""
         for _, r in ff_df.iterrows():
