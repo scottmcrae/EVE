@@ -732,11 +732,13 @@ try:
     else:
         ff_df = ff_df[ff_df["type_name"].notna() & (ff_df["type_name"] != "")]
         ff_df = ff_df[ff_df["margin"] * 100 >= 1]
-        ff_sort = st.selectbox("Sort by", ["Sell Price", "Margin"], key="ff_sort")
+        ff_sort = st.selectbox("Sort by", ["Sell Price", "Margin", "Daily Sale Volume"], key="ff_sort")
         if ff_sort == "Sell Price":
             ff_df = ff_df.sort_values("sell_price", ascending=False)
         elif ff_sort == "Margin":
             ff_df = ff_df.sort_values("margin", ascending=False)
+        elif ff_sort == "Daily Sale Volume":
+            ff_df = ff_df.sort_values("avg_rolling_volume", ascending=False)
         tid = "tbl-ff"
         rows = ""
         for _, r in ff_df.iterrows():
