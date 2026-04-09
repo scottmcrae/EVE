@@ -716,12 +716,12 @@ try:
     else:
         ff_df = ff_df[ff_df["type_name"].notna() & (ff_df["type_name"] != "")]
         ff_df = ff_df[ff_df["margin"] * 100 >= 5]
-        _ffc1, _ffc2 = st.columns([2, 3])
+        _ffc1, _ffc2 = st.columns([3, 2])
         with _ffc1:
+            ff_sort = st.selectbox("Sort by", ["Margin", "Sell Price", "Daily Sale Volume"], key="ff_sort")
+        with _ffc2:
             ff_systems = ["Jita", "Dodixie"]
             ff_system = st.selectbox("System", ff_systems, key="ff_system")
-        with _ffc2:
-            ff_sort = st.selectbox("Sort by", ["Margin", "Sell Price", "Daily Sale Volume"], key="ff_sort")
         ff_df = ff_df[ff_df["system_name"] == ff_system]
         if ff_sort == "Sell Price":
             ff_df = ff_df.sort_values("sell_price", ascending=False)
