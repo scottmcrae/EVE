@@ -737,8 +737,10 @@ try:
             margin_pct = r["margin"] * 100
             if margin_pct >= 1000:
                 margin_style = 'color:#ff5252;font-weight:600;'
+            elif margin_pct >= 500:
+                margin_style = 'color:#ff5500;font-weight:600;'
             elif margin_pct >= 100:
-                margin_style = 'color:#ff8c00;font-weight:600;'
+                margin_style = 'color:#ff9100;font-weight:600;'
             elif margin_pct >= 20:
                 margin_style = 'color:#ffd700;font-weight:600;'
             else:
