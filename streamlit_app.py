@@ -504,9 +504,6 @@ with col_logo:
     st.markdown("""
     <div style="display:flex;align-items:center;gap:14px;padding-bottom:0;margin-bottom:0;">
         <div style="width:36px;height:36px;border:1.5px solid #00c8ff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#00c8ff;">◈</div>
-        <div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;">Market Scanner</div>
-        </div>
     </div>""", unsafe_allow_html=True)
 with col_btn:
     st.write(""); st.write("")
@@ -730,7 +727,7 @@ try:
             ff_systems = ["Jita", "Dodixie"]
             ff_system = st.selectbox("System", ff_systems, key="ff_system")
         with _ffc2:
-            ff_sort = st.selectbox("Sort by", ["Sell Price", "Margin", "Daily Sale Volume"], key="ff_sort")
+            ff_sort = st.selectbox("Sort by", ["Margin", "Sell Price", "Daily Sale Volume"], key="ff_sort")
         ff_df = ff_df[ff_df["system_name"] == ff_system]
         if ff_sort == "Sell Price":
             ff_df = ff_df.sort_values("sell_price", ascending=False)
