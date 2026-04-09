@@ -758,12 +758,13 @@ try:
                 margin_style = 'color:#ffd700;font-weight:600;'
             else:
                 margin_style = ''
+            vol_style = 'color:#00c875;font-weight:600;' if r["avg_rolling_volume"] > 0 else ''
             rows += (
                 f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}" data-margin="{r["margin"]}">'
                 f'<td>{r["type_name"]}</td>'
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
-                f'<td>{r["avg_rolling_volume"]:,.0f}</td>'
+                f'<td style="{vol_style}">{r["avg_rolling_volume"]:,.0f}</td>'
                 f'<td style="{margin_style}">{margin_pct:.0f}%</td>'
                 f'</tr>'
             )
