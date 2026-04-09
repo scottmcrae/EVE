@@ -735,7 +735,9 @@ try:
         for _, r in ff_df.iterrows():
             name_safe = str(r["type_name"]).replace('"', "&quot;")
             margin_pct = r["margin"] * 100
-            if margin_pct >= 1000:
+            if margin_pct >= 10000:
+                margin_style = 'color:#ff00ea;font-weight:600;'
+            elif margin_pct >= 1000:
                 margin_style = 'color:#ff5252;font-weight:600;'
             elif margin_pct >= 500:
                 margin_style = 'color:#ff8000;font-weight:600;'
