@@ -718,8 +718,6 @@ def build_combined_table(df, capital=100_000_000):
     return hdr + JS
 
 
-render_all(whale_df, mid_df, vol_df)
-
 # ── FF Compare ─────────────────────────────────────────────────────────────
 st.markdown("""<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:40px;margin-bottom:12px;padding-top:20px;border-top:1px solid #1e2530;">
 ◈ Fat Fingers Query
@@ -866,3 +864,5 @@ try:
         st.markdown(build_haul_table(haul_df, cargo_capacity=cargo_capacity, capital=capital, tax_rate=taxes), unsafe_allow_html=True)
 except Exception as e:
     st.error(f"⚠ Hauling data unavailable: {e}")
+
+render_all(whale_df, mid_df, vol_df)
