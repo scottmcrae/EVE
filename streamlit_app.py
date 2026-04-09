@@ -533,10 +533,6 @@ whale_df = tier_slice(df, "whale").sort_values("daily_isk", ascending=False)
 mid_df   = tier_slice(df, "mid").sort_values("daily_isk", ascending=False)
 vol_df   = tier_slice(df, "vol").sort_values("daily_isk", ascending=False)
 
-st.markdown(f"""<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#3d5068;letter-spacing:1px;margin-bottom:20px;">
-MARKET TIME: <span style="color:#c8d4e0">{last_update}</span> &nbsp;|&nbsp; QUERIES FINISHED: <span style="color:#c8d4e0">{finished_at}</span>
-</div>""", unsafe_allow_html=True)
-
 # ── Sidebar ────────────────────────────────────────────────────────────────
 market_tax = st.session_state.get("market_tax", 5.02)
 capital_raw = st.session_state.get("market_capital", "100,000,000")
@@ -865,7 +861,11 @@ try:
 except Exception as e:
     st.error(f"⚠ Hauling data unavailable: {e}")
 
-st.markdown("""<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:40px;margin-bottom:12px;padding-top:20px;border-top:1px solid #1e2530;">
+st.markdown(f"""<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#3d5068;letter-spacing:1px;margin-top:40px;padding-top:20px;border-top:1px solid #1e2530;">
+MARKET TIME: <span style="color:#c8d4e0">{last_update}</span> &nbsp;|&nbsp; QUERIES FINISHED: <span style="color:#c8d4e0">{finished_at}</span>
+</div>""", unsafe_allow_html=True)
+
+st.markdown("""<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:12px;margin-bottom:12px;">
 ◈ Market Spread
 </div>""", unsafe_allow_html=True)
 
