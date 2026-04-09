@@ -716,6 +716,7 @@ try:
     else:
         ff_df = ff_df[ff_df["type_name"].notna() & (ff_df["type_name"] != "")]
         ff_df = ff_df[ff_df["margin"] * 100 >= 5]
+        ff_df = ff_df[~((ff_df["sell_price"] < 1_000_000) & (ff_df["margin"] * 100 < 20))]
         _ffc1, _ffc2 = st.columns([3, 2])
         with _ffc1:
             ff_sort = st.selectbox("Sort by", ["Margin", "Sell Price", "Daily Sale Volume"], key="ff_sort")
@@ -741,11 +742,12 @@ try:
             elif margin_pct >= 20:
                 margin_style = 'color:#ffd700;font-weight:600;'
             else:
-                margin_style = ''
+                margin_style = 'color:#c8d4e0;'
             vol_style = 'color:#00c875;font-weight:600;' if r["avg_rolling_volume"] > 0 else ''
+            name_style = 'color:#00c875;font-weight:600;' if r["avg_rolling_volume"] > 0 else ''
             rows += (
                 f'<tr data-name="{name_safe.lower()}" data-sell="{r["sell_price"]}" data-margin="{r["margin"]}">'
-                f'<td>{r["type_name"]}</td>'
+                f'<td style="{name_style}">{r["type_name"]}</td>'
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
                 f'<td style="{vol_style}">{r["avg_rolling_volume"]:,.0f}</td>'
