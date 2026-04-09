@@ -731,7 +731,7 @@ try:
         st.warning("No ff_compare data found.")
     else:
         ff_df = ff_df[ff_df["type_name"].notna() & (ff_df["type_name"] != "")]
-        ff_df = ff_df[ff_df["margin"] * 100 >= 1]
+        ff_df = ff_df[ff_df["margin"] * 100 >= 5]
         _ffc1, _ffc2 = st.columns([2, 3])
         with _ffc1:
             ff_systems = ["Jita", "Dodixie"]
@@ -754,7 +754,7 @@ try:
                 margin_style = 'color:#ff5252;font-weight:600;'
             elif margin_pct >= 100:
                 margin_style = 'color:#ff8c00;font-weight:600;'
-            elif margin_pct >= 10:
+            elif margin_pct >= 20:
                 margin_style = 'color:#ffd700;font-weight:600;'
             else:
                 margin_style = ''
@@ -764,7 +764,7 @@ try:
                 f'<td>{r["system_name"]}</td>'
                 f'<td>{fmt(r["sell_price"])} ISK</td>'
                 f'<td>{r["avg_rolling_volume"]:,.0f}</td>'
-                f'<td style="{margin_style}">{margin_pct:.2f}%</td>'
+                f'<td style="{margin_style}">{margin_pct:.0f}%</td>'
                 f'</tr>'
             )
         hdr = (
