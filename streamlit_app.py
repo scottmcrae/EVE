@@ -499,15 +499,9 @@ def build_haul_table(df, cargo_capacity=6500, capital=100_000_000, tax_rate=5.02
 
 
 # ── Header ─────────────────────────────────────────────────────────────────
-col_logo, col_btn = st.columns([6, 1])
-with col_logo:
-    st.markdown("""
-    <div style="display:flex;align-items:center;gap:14px;padding-bottom:0;margin-bottom:0;">
-        <div style="width:36px;height:36px;border:1.5px solid #00c8ff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#00c8ff;">◈</div>
-    </div>""", unsafe_allow_html=True)
+col_btn, = st.columns([1])
 with col_btn:
-    st.write(""); st.write("")
-    if st.button("↻  REFRESH", use_container_width=True):
+    if st.button("↻  REFRESH", use_container_width=False):
         st.cache_data.clear()
         st.rerun()
 st.markdown("<div style='border-bottom:1px solid #1e2530;margin-bottom:20px;margin-top:8px'></div>", unsafe_allow_html=True)
