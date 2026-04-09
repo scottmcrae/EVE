@@ -506,7 +506,6 @@ with col_logo:
         <div style="width:36px;height:36px;border:1.5px solid #00c8ff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#00c8ff;">◈</div>
         <div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;">Market Scanner</div>
-            <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#7a90a8;letter-spacing:1px;">HIGHSEC SPREAD ANALYSIS</div>
         </div>
     </div>""", unsafe_allow_html=True)
 with col_btn:
@@ -715,7 +714,7 @@ def build_combined_table(df, capital=100_000_000):
 
 
 # ── FF Compare ─────────────────────────────────────────────────────────────
-st.markdown("""<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:40px;margin-bottom:12px;padding-top:20px;border-top:1px solid #1e2530;">
+st.markdown("""<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-top:8px;margin-bottom:12px;">
 ◈ Fat Fingers Query
 </div>""", unsafe_allow_html=True)
 
