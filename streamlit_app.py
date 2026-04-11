@@ -393,6 +393,34 @@ JS = """<script>
     t.querySelectorAll('.si').forEach(function(s){s.textContent='';});
     th.querySelector('.si').textContent=asc?'▲':'▼';
   };
+  document.addEventListener('dblclick',function(e){
+    var td=e.target.closest('td');
+    if(!td)return;
+    var tr=td.closest('tr');
+    if(!tr||!tr.closest('.mkt-table'))return;
+    var tbl=tr.closest('table');
+    var ths=tbl?Array.from(tbl.querySelectorAll('thead th')):[];
+    var tds=Array.from(tr.querySelectorAll('td'));
+    var idx=tds.indexOf(td);
+    var header=ths[idx]?ths[idx].innerText.trim().toLowerCase():'';
+    var isFirst=idx===0;
+    var isFromTo=header==='from'||header==='to';
+    if(!isFirst&&!isFromTo)return;
+    var text=td.innerText.trim();
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{document.execCommand('copy');}catch(err){}
+    document.body.removeChild(ta);
+    var orig=td.style.color;
+    td.style.transition='color 0.1s';
+    td.style.color='#00c8ff';
+    setTimeout(function(){td.style.color=orig;},600);
+  });
 })();
 </script>"""
 
