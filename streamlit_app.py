@@ -749,8 +749,8 @@ try:
         with _ffc1:
             ff_sort = st.selectbox("Sort by", ["Margin", "Sell Price", "Daily Sale Volume"], key="ff_sort")
         with _ffc2:
-            ff_systems = ["Jita", "Dodixie"]
-            ff_system = st.selectbox("System", ff_systems, key="ff_system")
+            ff_systems = ["Jita", "Amarr", "Dodixie", "Hek", "Rens"]
+            ff_system = st.selectbox("System", ff_systems, index=0, key="ff_system")
         ff_df = ff_df[ff_df["system_name"] == ff_system]
         if ff_sort == "Sell Price":
             ff_df = ff_df.sort_values("sell_price", ascending=False)
